@@ -12,17 +12,30 @@ eabldata['Date'] = pd.to_datetime(eabldata['Date'])  # Convert 'Date' column to 
 eabldata.set_index('Date', inplace=True)  # Set the 'Date' column as the index
 
 # Select the relevant columns
-time_series = eabldata[['Close', 'Open', 'High', 'Low']]
+time_series = eabldata[['Close', 'Open', 'High', 'Low', 'Volume']]
 
 # Visualize the time series for each column
-plt.figure(figsize=(12, 6)) 
-for column in time_series.columns:
-    plt.plot(time_series[column], label=column)
-plt.title('EABL Stock Price Time Series') 
-plt.xlabel('Date') 
-plt.ylabel('Price') 
-plt.legend()
-plt.show() 
+
+# Determine the number of columns
+num_columns = len(time_series.columns)
+
+# Create subplots
+fig, axes = plt.subplots(nrows=num_columns, ncols=1, figsize=(12, 4 * num_columns))
+
+# Ensure axes is iterable even if there's only one subplot
+if num_columns == 1:
+    axes = [axes]
+
+# Plot each column in its own subplot
+for ax, column in zip(axes, time_series.columns):
+    ax.plot(time_series[column], label=column)
+    ax.set_title(f'{column} Time Series')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Price')
+    ax.legend()
+
+plt.tight_layout()
+plt.show()
 
 # ADF and KPSS Tests for each column
 for column in ['Close', 'Open', 'High', 'Low']:
