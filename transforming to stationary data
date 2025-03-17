@@ -1,0 +1,18 @@
+import numpy as np
+from statsmodels.tsa.stattools import adfuller
+
+# Applying transformation and stationarity test to all columns
+for column in ['Open', 'Close', 'High', 'Low', 'Volume']:
+    print(f"\n== {column} Column ==")
+    
+    # Transforming the column to be stationary
+    df_log = np.sqrt(eabldata[column])
+    df_diff = df_log.diff().dropna()
+
+    # ADF Test for stationarity
+    result = adfuller(df_diff)
+    print('Test Statistic: %f' % result[0])
+    print('p-value: %f' % result[1])
+    print('Critical values:')
+    for key, value in result[4].items():
+        print('\t%s: %.3f' % (key, value))
