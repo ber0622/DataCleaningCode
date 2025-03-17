@@ -1,0 +1,57 @@
+#results analysis
+
+#close column - 
+results: 
+
+ADF Statistic: -1.3034090875142024
+p-value: 0.6276112122985049
+    conclusion: Since 0.6276112122985049>0.05;Fail to reject the null hypothesis hence the data is non-stationary
+        As the test statistic is greater (less negative) then the critical value becomes the reason to not reject the null hypothesis. This indicates that the data is non-stationary.
+KPSS Statistic: 4.142447736537779
+p-value: 0.01
+    conclusion: Since 0.01<0.05 Reject the null hypothesis hence the data is non-stationary
+
+#open column - 
+results:
+    
+ADF Statistic: -1.2849262357857
+p-value: 0.6360400547861637
+    conclusion: Since 0.6360400547861637>0.05, we fail to reject the null hypothesis hence the data is non stationary
+        
+KPSS Statistic: 4.133753521723167
+p-value: 0.01
+    conclusion: since 0.01 < 0.05, we reject the null hypothesis hence conclude that the data is non stationary
+    
+
+#high column - 
+results:
+    
+ADF Statistic: -1.2744244178316106
+p-value: 0.6407904525800194
+    conclusion: since 0.6407904525800194>0.05, we fail to reject the null hypothesis hence conclude that the data is non-stationary
+        
+KPSS Statistic: 4.075378561887193
+p-value: 0.01
+    conclusion: since 0.01 < 0.05, we reject the null hypothesis and conclude that the data is nonstationary
+        
+#low column - 
+results:
+    
+ADF Statistic: -1.2901443297132134
+p-value: 0.6336691460139079
+    conclusion: since 0.6336691460139079 > 0.05, we fail to reject the null hypothesis hence conclude that the data is non-stationary
+
+KPSS Statistic: 4.215147650391337
+p-value: 0.01
+    conclusion: since 0.01 < 0.05, we reject the null hypothesis and conclude that the data is non-stationary
+        
+#volume column
+ADF Statistic: -12.72705563930018
+p-value: 9.551707759981221e-24
+      conclusion:since 9.551707759981221e-24>0.05, we fail reject the null hypothesis hence our data is stationary.
+            
+KPSS Statistic: 2.303042271824313
+p-value: 0.01
+      conclusion:since 0.01<0.05, we reject the null hypothesis hence our data is stationary.
+        
+#in conclusion, only the volume data is stationary hence the rest will require a transformation
