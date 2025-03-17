@@ -38,15 +38,24 @@ plt.tight_layout()
 plt.show()
 
 # ADF and KPSS Tests for each column
-for column in ['Close', 'Open', 'High', 'Low']:
+from statsmodels.tsa.stattools import adfuller, kpss
+
+# ADF and KPSS Tests for each column
+for column in ['Close', 'Open', 'High', 'Low', 'Volume']:
     print(f"\n== {column} Column ==")
     
     # ADF Test
     adf_result = adfuller(time_series[column].dropna())
     print('ADF Statistic:', adf_result[0]) 
-    print('p-value:', adf_result[1]) 
+    print('p-value:', adf_result[1])
+    print('Critical values:')
+    for key, value in adf_result[4].items():
+        print('\t%s: %.3f' % (key, value))
     
     # KPSS Test
     kpss_result = kpss(time_series[column].dropna(), regression='c')
     print('KPSS Statistic:', kpss_result[0]) 
-    print('p-value:', kpss_result[1]) 
+    print('p-value:', kpss_result[1])
+    print('Critical values:')
+    for key, value in kpss_result[3].items():
+        print('\t%s: %.3f' % (key, value))
