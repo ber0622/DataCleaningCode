@@ -2,10 +2,8 @@
 import pandas as pd
 import numpy as np
 from scipy import stats
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-
 # Import data
-filepath = "C://Users//ADMIN//OneDrive//Desktop//HistoricalPrices data.csv"
+filepath = "C://Users//ADMIN//OneDrive//Desktop//EABL STOCK PRICE.csv"
 eabldata = pd.read_csv(filepath)
 
 ## Inspecting the data
@@ -20,32 +18,19 @@ eabldata.isnull().sum()
 # Remove duplicates if any
 eabldata.drop_duplicates(inplace=True)
 
+# filling NaNs with 0
+eabldata.fillna(0)
+
 # Remove leading spaces from column names
 eabldata.columns = eabldata.columns.str.strip()
 
 # Fix Data Types
-eabldata["Date"] = pd.to_datetime(eabldata["Date"], format="%m/%d/%Y", errors="coerce")
+eabldata["Date"] = pd.to_datetime(eabldata["Date"])
+eabldata.info()
 
-# Handling outliers using IQR method
-Q1 = eabldata["Low"].quantile(0.25)
-Q3 = eabldata["Low"].quantile(0.75)
-IQR = Q3 - Q1
 
-# Filtering rows using IQR
-eabldata = eabldata[(eabldata["Low"] >= Q1 - 1.5 * IQR) & (eabldata["Low"] <= Q3 + 1.5 * IQR)]
+# Save the cleaned data to a new CSV file
+output_filepath = "C://Users//ADMIN//OneDrive//Desktop//EABL_STOCK_PRICE_CLEANED.csv"
+eabldata.to_csv(output_filepath, index=False)
 
-# Use Z-score to detect and remove extreme outliers (beyond 3 standard deviations)
-eabldata = eabldata[np.abs(stats.zscore(eabldata["Low"])) < 3]
-
-# Normalize and standardize data
-scaler_minmax = MinMaxScaler()  # Min-Max Scaling (0-1)
-scaler_standard = StandardScaler()  # Standardization (mean=0, std=1)
-
-# Apply transformations correctly
-eabldata["Low"] = scaler_minmax.fit_transform(eabldata[["Low"]])
-eabldata["Low"] = scaler_standard.fit_transform(eabldata[["Low"]])
-
-# Save the cleaned data
-eabldata.to_csv('cleaned_data.csv', index=False)
-
-print("Data preprocessing complete. Cleaned data saved as 'cleaned_data.csv'.")
+print(f"Cleaned data saved successfully to {output_filepath}")
