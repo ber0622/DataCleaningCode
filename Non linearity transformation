@@ -1,0 +1,21 @@
+#non linear transformation
+
+from statsmodels.tsa.stattools import bds 
+import numpy as np
+import pandas as pd
+
+# Load your time series data 
+eabldata = pd.read_csv('C://Users//ADMIN//OneDrive//Desktop//EABL_STOCK_PRICE_CLEANED.csv')
+
+# Convert 'Date' column to datetime and set it as the index
+eabldata['Date'] = pd.to_datetime(eabldata['Date'])
+eabldata.set_index('Date', inplace=False)
+
+# 1. Log Transformation
+eabldata["LogVolume"] = np.log1p(eabldata["Volume"])  # log(1 + Volume) to avoid log(0)
+
+# Display processed data
+print(eabldata.tail())
+
+# Save processed data
+eabldata.to_csv("C://Users//ADMIN//OneDrive//Desktop/processed_stock_data.csv", index=False)
