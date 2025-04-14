@@ -1,0 +1,200 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import numpy as np
+import pandas as pd
+import random
+from collections import deque
+
+# Simulate a DataFrame with required columns (replace this with your real data)
+df = pd.DataFrame({
+    'Open': np.random.rand(3740),
+    'Close': np.random.rand(3740),
+    'Low': np.random.rand(3740),
+    'High': np.random.rand(3740),
+    'LogVolume': np.random.rand(3740)
+})
+
+# Simulate EnKF output (for demonstration only)
+# In reality, you would loop over time and collect real EnKF outputs
+ensemble_means = np.random.rand(len(df))
+ensemble_covs = np.random.rand(len(df))
+
+# Add EnKF features
+df['Ensemble Mean'] = ensemble_means
+df['Ensemble Covariance'] = ensemble_covs
+df.dropna(inplace=True)
+
+# Experience Replay Memory
+class ReplayMemory:
+    def __init__(self, capacity):
+        self.memory = deque(maxlen=capacity)
+
+    def push(self, transition):
+        self.memory.append(transition)
+
+    def sample(self, batch_size):
+        return random.sample(self.memory, batch_size)
+
+    def __len__(self):
+        return len(self.memory)
+
+# Define the Neural Network
+class DQN(nn.Module):
+    def __init__(self, state_size, action_size):
+        super(DQN, self).__init__()
+        self.fc1 = nn.Linear(state_size, 128)
+        self.fc2 = nn.Linear(128, action_size)
+
+    def forward(self, x):
+        x = torch.relu(self.fc1(x))
+        return self.fc2(x)
+
+# DDQN Agent
+class DDQNAgent:
+    def __init__(self, state_size, action_size):
+        self.state_size = state_size
+        self.action_size = action_size
+        self.memory = ReplayMemory(2000)
+        self.gamma = 0.99 
+        self.epsilon = 1.0 
+        self.epsilon_decay = 0.995
+        self.epsilon_min = 0.01
+        self.learning_rate = 0.001
+
+        self.model = DQN(state_size, action_size)
+        self.target_model = DQN(state_size, action_size)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+
+        self.update_target_model()
+
+    def update_target_model(self):
+        self.target_model.load_state_dict(self.model.state_dict())
+
+    def act(self, state):
+        if np.random.rand() <= self.epsilon:
+            return random.randrange(self.action_size) 
+        state = torch.FloatTensor(state).unsqueeze(0)
+        q_values = self.model(state).detach().numpy() 
+        return np.argmax(q_values[0]) 
+
+    def memorize(self, state, action, reward, next_state, done):
+        self.memory.push((state, action, reward, next_state, done))
+
+    def replay(self, batch_size):
+        if len(self.memory) < batch_size:
+            return
+        
+        minibatch = self.memory.sample(batch_size)
+        for state, action, reward, next_state, done in minibatch:
+            target = reward
+            if not done:
+                next_state_tensor = torch.FloatTensor(next_state).unsqueeze(0)
+                target += self.gamma * torch.max(self.target_model(next_state_tensor).detach())
+
+            current_q = self.model(torch.FloatTensor(state).unsqueeze(0))
+            target_q = current_q.clone()
+            target_q[0][action] = target
+
+            self.optimizer.zero_grad()
+            loss = nn.MSELoss()(current_q, target_q)
+            loss.backward()
+            self.optimizer.step()
+
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
+
+# Custom Environment Simulated from Data
+class StockEnv:
+    def __init__(self, data):
+        self.data = data
+        self.current_step = 0
+        self.total_steps = len(data)
+
+    def reset(self):
+        self.current_step = 0
+        return self.data.iloc[self.current_step].values.tolist()
+
+    def step(self, action):
+        reward = self.get_reward(action)
+        self.current_step += 1
+        done = self.current_step >= self.total_steps - 1
+        next_state = self.data.iloc[self.current_step].values.tolist() if not done else [0]*7
+        return next_state, reward, done, {}
+
+    def get_reward(self, action):
+        if self.current_step >= self.total_steps - 1:
+            return 0
+        price_now = self.data.iloc[self.current_step]['Close']
+        price_next = self.data.iloc[self.current_step + 1]['Close']
+        if action == 1:  # Buy
+            return price_next - price_now
+        elif action == 2:  # Sell
+            return price_now - price_next
+        else:  # Hold
+            return 0
+
+# Main Training Loop
+if __name__ == "__main__":
+    # Normalize data
+    df = df[['Open', 'Close', 'Low', 'High', 'LogVolume', 'Ensemble Mean', 'Ensemble Covariance']]
+    df = (df - df.min()) / (df.max() - df.min())
+
+    env = StockEnv(df)
+    state_size = 7
+    action_size = 3  # 0: Hold, 1: Buy, 2: Sell
+    agent = DDQNAgent(state_size, action_size)
+
+    episodes = 100
+    for e in range(episodes):
+        state = env.reset()
+        total_reward = 0
+
+        for time in range(len(df) - 1):
+            action = agent.act(state)
+            next_state, reward, done, _ = env.step(action)
+
+            agent.memorize(state, action, reward, next_state, done)
+            state = next_state
+            total_reward += reward
+
+            if done:
+                print(f"Episode: {e+1}/{episodes}, Score: {total_reward:.2f}, Epsilon: {agent.epsilon:.2f}")
+                break
+
+        agent.replay(32)
+
+        if e % 10 == 0:
+            agent.update_target_model()
+
+print("\n--- Final Trading Decisions ---\n")
+state = env.reset()
+decisions = []
+
+for t in range(len(df) - 1):
+    actions_this_episode = []
+    action = agent.act(state)
+    if action == 0:
+        decisions.append("Hold")
+    elif action == 1:
+        decisions.append("Buy")
+    else:
+        decisions.append("Sell")
+        # Record action as a string
+action_str = {0: "Hold", 1: "Buy", 2: "Sell"}[action]
+actions_this_episode.append((env.current_step, action_str))
+next_state, _, done, _ = env.step(action)
+state = next_state
+print(f"\nEpisode {e+1} decisions:")
+for step, decision in actions_this_episode:
+    print(f"Step {step}: {decision}")
+
+    if done:
+        break
+
+# Print last 100 decisions
+for i, decision in enumerate(decisions[-100:]):
+    print(f"Time Step {len(decisions)-10+i}: {decision}")
+
+decision_df = pd.DataFrame(actions_this_episode, columns=["TimeStep", "Decision"])
+decision_df.to_csv(f"decisions_episode_{e+1}.csv", index=False)
