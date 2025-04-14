@@ -1,0 +1,156 @@
+import numpy as np
+
+class SimpleEnKF:
+    def __init__(self, x, P, dim_z, dt, N, hx, fx):
+        self.x = x
+        self.P = P
+        self.dim_x = len(x)
+        self.dim_z = dim_z
+        self.dt = dt
+        self.N = N
+        self.hx = hx
+        self.fx = fx
+        self.R = np.eye(dim_z)
+        self.Q = np.eye(self.dim_x) * 0.01
+        self.ensemble = np.random.multivariate_normal(self.x, self.P, size=self.N)
+
+    def predict(self):
+        for i in range(self.N):
+            self.ensemble[i] = self.fx(self.ensemble[i], self.dt)
+        self.ensemble += np.random.multivariate_normal(np.zeros(self.dim_x), self.Q, size=self.N)
+
+    def update(self, z):
+        Hx = np.array([self.hx(e) for e in self.ensemble])
+        z_mean = np.mean(Hx, axis=0)
+        X = self.ensemble - np.mean(self.ensemble, axis=0)
+        Y = Hx - z_mean
+
+        P_xy = X.T @ Y / (self.N - 1)
+        P_yy = Y.T @ Y / (self.N - 1) + self.R
+
+        K = P_xy @ np.linalg.inv(P_yy)
+
+        Z_perturbed = z + np.random.multivariate_normal(np.zeros(self.dim_z), self.R, size=self.N)
+
+        for i in range(self.N):
+            self.ensemble[i] += K @ (Z_perturbed[i] - Hx[i])
+
+        self.x = np.mean(self.ensemble, axis=0)
+        self.P = np.cov(self.ensemble.T)
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from filterpy.common import Q_discrete_white_noise
+
+# Define the SimpleEnKF class
+class SimpleEnKF:
+    def __init__(self, x, P, dim_z, dt, N, hx, fx):
+        self.x = x  # state estimate
+        self.P = P  # state covariance
+        self.dim_z = dim_z  # dimension of the observation space
+        self.dt = dt  # time step
+        self.N = N  # number of ensemble members
+        self.hx = hx  # measurement function
+        self.fx = fx  # transition function
+        self.ensemble = np.random.multivariate_normal(x, P, N)  # initial ensemble
+        self.R = np.eye(dim_z)  # measurement noise covariance
+        self.Q = np.eye(2)  # process noise covariance
+
+    def predict(self):
+        # Apply the state transition function to each ensemble member
+        for i in range(self.N):
+            self.ensemble[i] = self.fx(self.ensemble[i], self.dt)
+
+    def update(self, z):
+        Hx = np.array([self.hx(e) for e in self.ensemble])
+        z_mean = np.mean(Hx, axis=0)
+        X = self.ensemble - np.mean(self.ensemble, axis=0)
+        Y = Hx - z_mean
+        P_xy = X.T @ Y / (self.N - 1)
+        P_yy = Y.T @ Y / (self.N - 1) + self.R
+        K = P_xy @ np.linalg.inv(P_yy)
+        Z_perturbed = z + np.random.multivariate_normal(np.zeros(self.dim_z), self.R, size=self.N)
+
+        # Update the ensemble based on the Kalman gain
+        for i in range(self.N):
+            self.ensemble[i] += K @ (Z_perturbed[i] - Hx[i])
+
+        # Update the ensemble mean and covariance
+        self.x = np.mean(self.ensemble, axis=0)
+        self.P = np.cov(self.ensemble.T)
+
+# Load the dataset and inspect column names
+file_path = "C://Users//ADMIN//OneDrive//Desktop//EABL_STOCK_PRICE_CLEANED.csv"
+df = pd.read_csv(file_path)
+
+# Columns to use
+columns = ['Open', 'Close', 'High', 'Low', 'LogVolume']
+measurements_matrix = df[columns].copy().values
+
+# Normalize each column
+measurements_matrix = (measurements_matrix - np.mean(measurements_matrix, axis=0)) / np.std(measurements_matrix, axis=0)
+
+Assimilation_window, dim_z = measurements_matrix.shape
+dim_x = dim_z * 2  # For each variable, we model both value and rate of change
+
+# Define state transition matrix F (2x for each variable)
+F_single = np.array([[1., 1.],
+                     [0., 1.]])
+F = np.block([[F_single if i == j else np.zeros((2, 2)) for j in range(dim_z)] for i in range(dim_z)])
+
+# Initial state: value and rate of change for each column
+x0 = np.zeros(dim_x)
+P0 = np.eye(dim_x) * 0.1
+
+# Define measurement function (just return the value part of each 2-element pair)
+def hx(x):
+    return x[::2]  # pick value part (i.e., index 0, 2, 4, ...)
+
+# Define transition function
+def fx(x, dt):
+    return F @ x
+
+# Initialize EnKF
+enf = SimpleEnKF(x=x0, P=P0, dim_z=dim_z, dt=1., N=20, hx=hx, fx=fx)
+enf.R *= 0.5  # Observation noise
+enf.Q = Q_discrete_white_noise(dim=2, dt=1., var=0.01, block_size=dim_z)
+
+# Storage for results
+results = []
+uncertainty = []
+
+# Run EnKF
+for t in range(Assimilation_window):
+    z = measurements_matrix[t]  # observation vector
+
+    enf.predict()
+    enf.update(z)
+
+    results.append(enf.x[::2])  # Store only the estimated values (not velocities)
+    uncertainty.append(3 * np.sqrt(np.diag(enf.P)[::2]))
+
+results = np.array(results)
+uncertainty = np.array(uncertainty)
+
+# Print ensemble mean and covariance
+print(f"Ensemble Mean: {enf.x}")
+print(f"Ensemble Covariance: {enf.P}")
+
+# Plot results
+fig, axs = plt.subplots(dim_z, 1, figsize=(12, 2 * dim_z), sharex=True)
+for i, col in enumerate(columns):
+    axs[i].plot(measurements_matrix[:, i], label=f"Observed {col}", linestyle='--', color='gray')
+    axs[i].plot(results[:, i], label=f"EnKF Estimate", color='blue')
+    axs[i].fill_between(range(Assimilation_window),
+                        results[:, i] - uncertainty[:, i],
+                        results[:, i] + uncertainty[:, i],
+                        color='yellow', alpha=0.3, label='1σ Interval')
+    axs[i].set_ylabel(col)
+    axs[i].legend()
+    axs[i].grid(True)
+
+plt.xlabel('Time Step')
+plt.suptitle('Ensemble Kalman Filter on EABL Stock Features', fontsize=16)
+plt.tight_layout(rect=[0, 0, 1, 0.97])
+plt.show()
