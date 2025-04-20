@@ -1,0 +1,496 @@
+\documentclass[11pt]{beamer}
+\usetheme{Madrid}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{tikz}
+\usepackage{mathtools}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{amssymb}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{adjustbox}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\usepackage{lipsum}
+\usepackage[table]{xcolor}
+\usepackage{colortbl}
+\usepackage{fixmath}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning}
+\usepackage{pdflscape,multicol,multirow}
+\usepackage{setspace}
+\usepackage{subfigure}
+\setbeamertemplate{section in toc} [sections numbered]
+\setbeamertemplate{subsection in toc} [ball unnumbered]
+\addtobeamertemplate{navigation symbols}{}{ %
+%\usebeamerfont{footline} %
+%\usebeamercolor[fg]{footline} %
+\hspace{1em} %
+\insertframenumber\,/,\inserttotalframenumber}
+
+\definecolor{lightorange}{HTML}{F9CC99}
+\definecolor{greenlight}{HTML}{D9EAD3}
+\definecolor{darkred}{HTML}{C00000}
+%\setbeamertemplate{caption}[numbered]
+%\usepackage{table}
+%\usepackage[utf8]{inputenc}
+%\usepackage[T1]{fontenc}
+%\usepackage{bibentry}
+% Title Page
+\title{Optimizing Double Deep Q
+Networks by incorporating Ensemble Kalman Filter for Improved Trading
+Strategies}
+\usepackage{natbib}
+\setbeamertemplate{caption}[numbered]
+\author[]{\normalsize Subira Muatha - SCM 222-0509/2021\\
+\vspace{0.5cm}\normalsize Sharon Mutindi - SCM 222-1310/2021\\
+\vspace{0.5cm}\normalsize Mitchelle Ndege - SCM 222-0553/2021\\
+\vspace{0.5cm}\normalsize Abigail Mwihaki - SCM 222-0541/2021\\
+\vspace{0.5cm}\normalsize Bernice Muturi - SCM 222-1306/2021\\
+\vspace{0.5cm} \textbf{Supervisor: Dr. Nicholas Makumi}}\\
+
+\begin{document}
+
+% Title Slide
+\begin{frame}
+  \titlepage
+\end{frame}
+
+% Table of Contents
+\begin{frame}
+  \frametitle{Presentation Outline}
+  \tableofcontents
+\end{frame}
+
+% Introduction
+\section{Introduction}
+\subsection{Background of the study and the Problem Statement}
+\begin{frame}
+\frametitle{Background of the study and the Problem Statement}
+\textbf{Background of the Study}
+\begin{itemize}
+    \item This study focuses on the performance of the DDQN after using EnKF for noise filtration and state estimation of prices. The DDQN model’s reinforcement learning method allows for optimal stock trading decision-making, while the EnKF reduces noise by predicting hidden market conditions such as volatility, which are crucial for accurate predictions especially in volatile markets.
+\end{itemize}
+\textbf{Problem Statement}
+\begin{itemize}
+    \item Optimizing the DDQN model by incorporating the ENKF's state estimation and noise filtration techniques offers a more desirable output than the standalone DDQN, since the former offers better performance, especially in overestimation cases. The optimized DDQN model will be able to handle inherent uncertainty in financial markets by learning from the past and making more precise decisions.
+\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\subsection{Objectives}
+\frametitle{Objectives}
+\textbf{General Objective:}\\
+   Optimizing Double Deep Q
+Networks by incorporating Ensemble Kalman Filter for Improved Trading
+Strategies
+
+  \vspace{0.5cm}
+  \textbf{Specific Objectives:}
+  \begin{enumerate}
+      \item To fit EnKF and DDQN models.
+      \item To evaluate EnKF’s ability to reduce noise in EABL stock data and its effect on DDQN decisions.
+      \item To examine whether DDQN’s performance can be optimized using EnKF, via cross-validation techniques,(k-fold cross validation).
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}
+\subsection{Justification of The Study}
+  \frametitle{Justification of The Study}
+   \begin{itemize}
+    \item Enhancing the performance of Double Deep Q-Networks (DDQN) with the Ensemble Kalman Filter (EnKF) advances financial decision-making by addressing challenges in volatile and noisy markets.
+    \item DDQN improves trading strategies by correcting overestimation biases in traditional Q-learning models, while EnKF enhances state estimation by noise filtration and capturing hidden market dynamics like volatility.
+    \item This study aims to improve stock price predictions and trading decisions, contributing to advanced financial modelling in emerging markets.
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\section{Literature Review}
+\frametitle{Literature Review}
+\begin{itemize}
+    \item According to Kipchumba et al. (2020), the EnKF improves state estimation using an ensemble, handling nonlinearity and noise. The Ensemble mean provides the optimal state estimate, while the covariance (spread) quantifies uncertainty, ensuring efficient and accurate forecasting in high-dimensional systems
+    \item Zhou et al. (2024) improve trading RL by refining rewards through expert-trading rules neural networks (R-DDQN), yielding 1502\% returns. Unlike their supervised approach, we use ENKF to dynamically tune DDQN policy parameters, enhancing adaptation without expert data.
+\end{itemize}
+    \end{frame}
+% Literature Review
+
+\section{Methodology}
+\subsection{The ENKF}
+\begin{frame}{Methodology: The Ensemble Kalman Filter}
+   \begin{enumerate}
+    \item \textbf{Initialization}
+    \begin{itemize}
+        \item Initialize an ensemble of state estimates.
+        \item Represent the state vector $\mathbf{x}$ with $N$ members:
+        \[
+        x_i,\quad i = 1, 2, \ldots, N
+        \]
+    \end{itemize}
+
+    \item \textbf{Forecast State Propagation:}
+    \[
+    x_i^{\text{pred}} = f(x_{i-1}) + w_i,\quad w_i \sim \mathcal{N}(0, \sigma^2) \tag{1}
+    \]
+
+    \begin{itemize}
+        \item $f(x_{i-1})$: System evolution function describing state dynamics.
+        \item $w_i$: Process noise modeled as Gaussian.
+        \item Each ensemble member evolves independently over time.
+    \end{itemize}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{The Ensemble Kalman Filter}
+    \begin{enumerate}
+    \setcounter{enumi}{2}
+    \item \textbf{Ensemble Mean and covariance.}
+    
+    \textbf{The Ensemble Mean:}
+    \[
+    \bar{x}^{\text{pred}} = \frac{1}{N} \sum_{i=1}^{N} x_i^{\text{pred}} \tag{2}
+    \]
+    \textbf{Covariance:}
+    \[
+    \mathbf{P}^{\text{pred}} = \frac{1}{N - 1} \sum_{i=1}^{N} \left( x_i^{\text{pred}} - \bar{x}^{\text{pred}} \right)
+    \left( x_i^{\text{pred}} - \bar{x}^{\text{pred}} \right)^{\top} \tag{3}
+    \]
+\end{enumerate}
+\begin{itemize}
+        \item $\bar{x}^{\text{pred}}$: Best estimate of the state vector.
+        \item $\mathbf{P}^{\text{pred}}$: Quantifies uncertainty and interdependencies.
+        \item $N$: The Ensemble size
+    \end{itemize} 
+\end{frame}
+
+\begin{frame}{Ensemble Kalman Filter}
+\textbf{4. Update Step Incorporating Observations}
+\begin{equation}
+    \mathbf{y}_i^{\text{pred}} = h(\mathbf{x}_i^{\text{pred}}) + \mathbf{V}_i
+\end{equation}
+
+\normalsize where:
+$\mathbf{y}_i^{\text{pred}}$: Observation vector, $h(\cdot)$: Observation function mapping state to observed variables, and $\mathbf{V}_i$: Observation noise, $\sim \mathcal{N}(0, \mathbf{R})$.
+\vspace{0.5cm}
+
+\textbf{5. Kalman Gain Computation}
+\begin{itemize}
+    \item Compute Kalman Gain:
+    \begin{equation}
+        K = \mathbf{P}^{\text{pred}} \mathbf{H}^T \left( \mathbf{H} \mathbf{P}^{\text{pred}} \mathbf{H}^T + \mathbf{R} \right)^{-1}
+    \end{equation}
+Where $\mathbf{H}$ is the Observation matrix, and $\mathbf{R}$ is the Observation noise covariance.
+
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Ensemble Kalman Filter}
+    \textbf{6.Updating the Ensemble Members}
+\begin{equation}
+    \mathbf{x}_i^{\text{updated}} = \mathbf{x}_i^{\text{pred}} + \mathbf{K} \left( \mathbf{y} + \mathbf{v}_i - \mathbf{H} \mathbf{x}_i^{\text{pred}} \right)
+\end{equation}
+Where $\mathbf{x}_i^{\text{updated}}$ is the Refined state vector. It combines forecast and observed data using the Kalman Gain.
+The ensemble mean and covariance are updated based on the new estimates.
+    
+\end{frame}
+
+% Slide: Double Deep Q-Networks (DDQN)
+\subsection{The DDQN}
+\begin{frame}{Methodology: The Double Deep Q-Networks}
+    \textbf{1. Initialization}
+    \begin{itemize}
+        \item \textbf{Online Q-Network:} Used for action selection, with parameters $\theta$.
+        \item \textbf{Target Q-Network:} Used for action evaluation, with parameters $\theta^-$. 
+    \end{itemize}
+    \textbf{Note:} Initially, $\theta^- = \theta$.
+
+    
+    \textbf{2. Experience Replay Buffer}
+    \begin{itemize}
+        \item The agent interacts with the environment to collect experience tuples $(s, a, r, s')$, where:
+        \[
+        \begin{aligned}
+            &s \to \text{current state}, \quad a \to \text{action taken}, \\
+            &r \to \text{reward received}, \quad s' \to \text{next state.}
+        \end{aligned}
+        \]
+        \item Experiences are stored in the replay buffer.
+        \item Mini-batches are randomly sampled for training to break temporal correlations.
+    \end{itemize}
+\end{frame}
+
+% Slide: Action Selection
+\begin{frame}{Methodology: The Double Deep Q-Networks}
+    \textbf{3. Action Selection}
+    \begin{itemize}
+        \item Action Selection Using $\epsilon$-Greedy Policy:
+    \begin{itemize}
+        \item \textbf{Exploration:} With probability $\epsilon$, select a random action.
+        \item \textbf{Exploitation:} With probability $1-\epsilon$, select the action that maximizes the Q-value:
+        \begin{equation}
+        a = \arg \max_a Q(s, a; \theta)
+        \end{equation}
+        \end{itemize}
+    \end{itemize}
+    
+\textbf{4. Q-Value Update Using Double DQN}
+ \begin{itemize}
+        \item \textbf{Action Selection:} Use the online Q-network to select the next action:
+        \begin{equation}
+        a' = \arg \max_{a'} Q(s', a'; \theta)
+        \end{equation}
+    \end{itemize}   
+    
+\end{frame}
+
+% Slide: Q-Value Update
+\begin{frame}{Methodology: The Double Deep Q-Networks}
+    \begin{itemize}
+        \item \textbf{Action Evaluation:} Use the target Q-network to evaluate:
+        \begin{equation}
+        Y = R_t + \gamma Q\big(S_{t+1}, a'; \theta^-\big)
+        \end{equation}
+        \item Update weights by minimizing the loss:
+        \begin{equation}
+        L(\theta) = {E}(s, a, r, s')\big[(Y - Q(s, a; \theta))^2\big]
+        \end{equation}
+    \end{itemize}
+        
+\textbf{5. Loss Calculation and Propagation}
+\textbf{Gradient Descent:}
+    \begin{equation}
+    \theta \gets \theta - \alpha \nabla_\theta L(\theta)
+    \end{equation}
+    \textbf{Where:}
+    \begin{itemize}
+        \item $\alpha$: Learning rate.
+        \item $\nabla_\theta L(\theta)$: Gradient of the loss function.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Methodology: The Double Deep Q-Networks}
+\textbf{6. Network Update}
+\begin{itemize}
+    \item Periodically update the target network parameters, $\theta^-$, by copying the parameters from the online network, $\theta$.
+    \item This update stabilizes training by ensuring the target network changes more slowly, reducing oscillations during training.
+    \item Use the mean squared error (MSE) loss between the predicted Q-values and target values to update the weights of the online network.
+\end{itemize}
+\textbf{7. Model}
+\textbf{Output:} Q-values for possible actions: \{Buy, Sell, Hold\}.
+    \begin{equation}
+    Q(s, t) = [Q_{\text{Buy}}(s, t), Q_{\text{Sell}}(s, t), Q_{\text{Hold}}(s, t)]
+    \end{equation}
+    \begin{itemize}
+        \item Each Q-value estimates the future reward of taking the corresponding action in the given state. The agent selects the action with the highest Q-value.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Methodology: Model Evaluation Metrics}
+    \begin{itemize}
+    \item \textbf{Mean Absolute Percentage Error (MAPE)}:
+    \begin{equation}
+    \text{MAPE} = \frac{100\%}{n} \sum_{i=1}^n \left| \frac{Y_i - \hat{Y}_i}{Y_i} \right|
+    \end{equation}
+    
+    \item \textbf{Mean Absolute Error (MAE)}:
+    \begin{equation}
+    \text{MAE} = \frac{1}{n} \sum_{i=1}^n \left| Y_i - \hat{Y}_i \right|
+    \end{equation}
+    
+    \item \textbf{Root Mean Squared Error (RMSE)}:
+    \begin{equation}
+    \text{RMSE} = \sqrt{\frac{1}{n} \sum_{i=1}^n (Y_i - \hat{Y}_i)^2}
+    \end{equation}
+    
+    \item \textbf{Mean Squared Error (MSE)}:
+    \begin{equation}
+    \text{MSE} = \frac{1}{n} \sum_{i=1}^n (Y_i - \hat{Y}_i)^2
+    \end{equation}
+\end{itemize}
+\end{frame}
+
+% Methodology
+\section{Results}
+\tikzstyle{process} = [rectangle, minimum width=0.5cm, minimum height=0.1cm, text centered, draw=black, fill=blue!15, rounded corners]
+\tikzstyle{arrow} = [thick,->,>=Stealth]
+\begin{frame}{Flowchart of the Implementation}
+\left
+\begin{tikzpicture}[node distance=0.9cm and 0.5cm]
+
+    % Main vertical column
+    \node (collect) [process] {Data Collection};
+    \node (preprocess) [process, below=of collect] {Preprocessing};
+    \node (assumption) [process, below=of preprocess] {Assumption Testing};
+    \node (fitmodels) [process, below=of assumption] {Fit EnKF \& DDQN};
+    \node (eval1) [process, below=of fitmodels] {Evaluate Models Individually};
+    \node (trainDDQN) [process, below=of eval1] {Train DDQN w/ EnKF};
+
+    % Final rightward steps
+    \node (eval2) [process, right=of trainDDQN] {Optimized Evaluation};
+    \node (conclusion) [process, right=of eval2] {Conclusion};
+
+    % Arrows down the main column
+    \draw [arrow] (collect) -- (preprocess);
+    \draw [arrow] (preprocess) -- (assumption);
+    \draw [arrow] (assumption) -- (fitmodels);
+    \draw [arrow] (fitmodels) -- (eval1);
+    \draw [arrow] (eval1) -- (trainDDQN);
+
+    % Arrows to the right
+    \draw [arrow] (trainDDQN) -- (eval2);
+    \draw [arrow] (eval2) -- (conclusion);
+
+\end{tikzpicture}
+\end{frame}
+
+
+% Slide: Initialization
+\subsection{EnKF Results}
+
+\begin{frame}{Data Preparation}
+\textbf{1. Data Pre-processing}
+    \begin{itemize}
+        \item The EABL Stock data was collected from Jan 1, 2010 to Dec 31, 2024. We collected the Open, High, Close, Low, and Trading Volume data.
+        \item The data is cleaned by handling missing values, filling null values with zeros and removing any duplicates.
+    \end{itemize}
+\textbf{2. Assumption Testing}
+    \begin{itemize}
+        \item The data met all the assumptions; 
+    \end{itemize}
+    \begin{table}[h]
+\centering
+\caption{Diagnostic Test Results}
+\begin{tabular}{lc}
+\toprule
+\textbf{Test} & \textbf{P-Value} \\
+\midrule
+KS Test  & 0.0000 \\
+ADF Test & 0.6306 \\
+BDS Test & 0.0000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{frame}
+
+\begin{frame}{EnKF Results}
+
+\begin{columns}
+
+% Left column with image
+\begin{column}{0.5\textwidth}
+    \includegraphics[width=\linewidth]{Output from EnKF.jpg} % Replace with your actual image file
+    \centering
+    \captionof{figure}{EnKF Output.}
+\end{column}
+
+% Right column with explanation
+\begin{column}{0.5\textwidth}
+    \small
+    The Ensemble mean represents the approximation of the true state of the system, 
+    while the Ensemble covariance represents the spread that gives the error variance. 
+    These outputs will be incorporated into the DDQN for state estimation. 
+    
+    An ensemble of size \( N = 20 \) was used. Noise covariances were found to be 
+    \( \mathbf{Q} = 0.01I_2 \), \( \mathbf{R} = 0.5I_2 \) while the initial uncertainty was $\mathbf{P}_0 = 0.1\mathbf{I}_{10}$
+\end{column}
+
+\end{columns}
+
+\end{frame}
+
+\begin{frame}{EnKF Results}
+\begin{columns}
+    % Left column: Image
+    \begin{column}{0.65\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{enkf graph.jpg} % Replace with your image file
+        \caption{EnKF Output.}
+        \label{fig:EnKF visual Output}
+    \end{column}
+
+
+    % Right column: Commentary
+    \begin{column}{0.35\textwidth}
+        \small % Adjust text size if needed
+        \textbf{Observation:} \\
+        The plots below give a better view that the estimated values closely align with the observed values hence are accurate. \\
+        
+        \vspace{0.5em}
+        The estimated values display less volatility compared to the observed values, hence showing that a percentage of uncertainty has been accounted for by the EnKF model.
+    \end{column}
+\end{columns}
+\end{frame}
+
+\subsection{DDQN Results}
+\begin{frame}{DDQN Results}
+\textbf{TABLE SHOWING THE 1ST 20, OF THE LAST 100 OF THE OUTPUT FROM INTERGRATING ENKF TO DDQN}
+\item \textbf{Output}
+    \begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.7\textwidth]{DDQN OUTPUT.jpg}
+    \caption{DQQN Output.}
+    \label{fig:DDQN Output}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{DDQN Results}
+\textbf{Key Metrics Explanation}
+\begin{itemize}
+\item \textbf{1. Episode Number}: Shows the current episode out of the total (e.g., "Episode: 1/100"). Helps track progress through the training phase. The episodic scores show a clear pattern of improvement over time, indicating effective adaptation to market dynamics
+
+\item \textbf{2. Score}: The cumulative reward earned during that episode. It Measures the agent's profitability. Positive scores indicate net gains; negative scores imply losses.
+
+\item \textbf{3. Epsilon}: The exploration rate (probability of taking a random action). (e.g., "Epsilon: 1.0 → 0.68"), starts at 1.0 (100\% exploration) and decays to 0.68 (68\% exploration) via an epsilon decay of 0.995. It Shows the agent's shift from exploration (learning) to exploitation (using learned strategies).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DDQN Results}
+\textbf{Initial Episode Analysis}
+From the output:
+The score trend of the initial Episodes (1-20): scores fluctuate widely (e.g., 0.21 to -0.13), indicating the agent is exploring randomly due to high `epsilon'. Negative scores mean the agent made losing trades (e.g., buying before price drops or selling before price rises). The scores in the later episodes plateau around 3.53- ...., showing the agent has likely converged to a policy that maximizes rewards under the given conditions.
+
+\textbf{Trading Decisions Terminology}
+\begin{itemize}
+\item \textbf{Time step}: (e.g., "Time Step 3724") means specific point in the trading sequence (e.g., day/hour depending on data granularity). It Identifies when actions occurred in the test dataset.
+
+\item \textbf{Decision} (e.g., "Sell", "Buy", "Hold"), means the agent's action at that time step:
+\begin{itemize}
+\item Buy: Long position opened (profit if price rises).
+\item Sell: Short position opened (profit if price falls).
+\item Hold: No action taken.
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{DDQN Results}
+\textbf{Strategy Analysis:}\\
+It reveals the agent's strategy (e.g., sell-heavy for downward trends). Final trading decisions reveal a balanced mix of actions (Buy: 18\%, Sell: 68\%, Hold: 14\%), demonstrating that the system dynamically adjusts to market conditions rather than relying on a single strategy. The prevalence of sell actions in later stages (e.g., Time Steps 3800-3823) correlates with periods of strong positive returns, indicating the system learned to capitalize on overbought conditions or downward trends—a behaviour aligned with the MACD/RSI ensemble signals.
+
+
+\end{frame}
+
+
+
+
+% References
+\frametitle{References}
+\section{References}
+\begin{frame}{References}
+\begin{itemize}
+    \item Kipchumba Korir, E., Aduda, J., \& Mageto, T. (2020). \textit{Forecasting Electricity Prices Using Ensemble Kalman Filter}.  
+    Journal of Statistical and Econometric Methods (Vol. 9, Issue 1). Available at: \url{https://link.springer.com/article/10.1007/s13198-022-01755-6?form=MG0AV3#citeas}
+
+    \item Orsel, O. E., \& Yamada, S. S. (2022). \textit{Comparative Study of Machine Learning Models for Stock Price Prediction}.  
+    Available at: \url{http://arxiv.org/abs/2202.03156}
+    \item Gao, C., Wang, H., Weng, E., Lakshmivarahan, S., Zhang, Y., Luo, Y. (2011).
+    \textit{Assimilation of multiple data sets with the Kalman filter set to improve forest carbon dynamics forecasts.} \url{https://doi.org/10.1890/09-1234.1}
+    \item Zhang, J., & Lei, Y. (2022). 
+    \textit{Deep Reinforcement Learning for Stock Prediction.} \url{https://doi.org/10.1155/2022/5812546}
+\end{itemize}
+\end{frame}
+
+\end{document}
